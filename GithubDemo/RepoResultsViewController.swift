@@ -10,13 +10,14 @@ import UIKit
 import MBProgressHUD
 
 // Main ViewController
-class RepoResultsViewController: UIViewController {
+class RepoResultsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource{
 
     var searchBar: UISearchBar!
     var searchSettings = GithubRepoSearchSettings()
 
-    var repos: [GithubRepo]!
+    var repos: [GithubRepo] = [GithubRepo]()
 
+    @IBOutlet weak var tableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -28,8 +29,24 @@ class RepoResultsViewController: UIViewController {
         searchBar.sizeToFit()
         navigationItem.titleView = searchBar
 
+        // tableView
+        tableView.dataSource = self
+        tableView.delegate = self
+        tableView.estimatedRowHeight = 100
+        tableView.rowHeight = UITableViewAutomaticDimension
+
         // Perform the first search when the view controller first loads
         doSearch()
+    }
+
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return repos.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "RepoCell") as! RepoCell
+        cell.repo = repos[indexPath.row]
+        return cell
     }
 
     // Perform the search.
@@ -38,16 +55,13 @@ class RepoResultsViewController: UIViewController {
         MBProgressHUD.showAdded(to: self.view, animated: true)
 
         // Perform request to GitHub API to get the list of repositories
-        GithubRepo.fetchRepos(searchSettings, successCallback: { (newRepos) -> Void in
+        GithubRepo.fetchRepos(searchSettings, successCallback: { [weak self] (newRepos) -> Void in
 
-            // Print the returned repositories to the output window
-            for repo in newRepos {
-                print(repo)
-            }   
-
-            MBProgressHUD.hide(for: self.view, animated: true)
+            self?.repos = newRepos
+            self?.tableView.reloadData()
+            MBProgressHUD.hide(for: self?.view, animated: true)
             }, error: { (error) -> Void in
-                print(error)
+                print(error ?? "???")
         })
     }
 }
